@@ -1,0 +1,63 @@
+:root {
+  --bg: #17100c;
+  --surface: #241a14;
+  --surface2: #2f221a;
+  --text: #fff5ec;
+  --muted: #c9a98f;
+  --accent: #ff8c1a;
+  --accent2: #e63946;
+  --border: #453426;
+}
+* { box-sizing: border-box; }
+/* `hidden` must win over the display:flex rules below (.idle-overlay,
+   .now-playing): author display rules override the UA [hidden] rule,
+   so without this the play overlay never disappears on play. */
+[hidden] { display: none !important; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Vazirmatn, system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+.app { max-width: 640px; margin: 0 auto; padding: 12px 12px 32px; }
+.topbar { display: flex; align-items: center; gap: 10px; padding: 4px 2px 12px; }
+.logo { width: 52px; height: 52px; border-radius: 14px; object-fit: cover; }
+.brand { display: flex; flex-direction: column; }
+.brand-title { font-size: 22px; font-weight: 800; line-height: 1.2; }
+.brand-sub { font-size: 12px; color: var(--muted); }
+.player { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-bottom: 8px; }
+.video-wrap { position: relative; }
+video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 14px; display: block; }
+.idle-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: #000; border-radius: 14px; pointer-events: none; }
+.big-play { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; }
+.big-play svg { width: 32px; height: 32px; fill: #fff; margin-inline-start: 5px; }
+.idle-text { font-size: 14px; color: var(--muted); }
+.now-playing { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.np-name { font-weight: 800; font-size: 16px; }
+.np-group { font-size: 12px; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; }
+.icon-btn { margin-inline-start: auto; background: var(--surface2); color: var(--accent); border: 1px solid var(--border); border-radius: 999px; width: 36px; height: 36px; font-size: 20px; cursor: pointer; }
+.icon-btn.fav { color: var(--accent); }
+.report-btn { background: none; border: none; color: var(--muted); font-family: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; }
+.status { margin: 6px 2px 0; font-size: 13px; color: var(--muted); min-height: 18px; }
+.status.error { color: #ff9a9a; }
+.controls { margin-top: 4px; }
+#search { width: 100%; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 15px; outline: none; }
+#search:focus { border-color: var(--accent); }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 2px 2px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: 0 0 auto; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 14px; cursor: pointer; }
+.chip.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); border-color: transparent; font-weight: 700; }
+.count { font-size: 12px; color: var(--muted); margin: 10px 2px 6px; }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; color: var(--text); font-family: inherit; cursor: pointer; }
+.item.playing { border-color: var(--accent); }
+.item-logo { width: 44px; height: 44px; border-radius: 8px; object-fit: contain; background: #fff; flex: 0 0 auto; }
+.item-logo.fallback { object-fit: cover; }
+.item-body { flex: 1; min-width: 0; }
+.item-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-group { font-size: 12px; color: var(--muted); }
+.item-star { font-size: 20px; color: var(--accent); background: none; border: none; cursor: pointer; padding: 4px; }
+.item-star.off { color: #6b5646; }
+.empty { text-align: center; color: var(--muted); padding: 24px 0; }
+.note { font-size: 12px; color: var(--muted); line-height: 1.8; margin: 18px 2px 0; }

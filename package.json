@@ -1,0 +1,1 @@
+{"description":"Watch Satellite TV — Telegram Mini App IPTV player on Telegram Serverless (tgcloud).","devDependencies":{"@tgcloud/cli":"^0.2.0"},"name":"watch-satellite-tv","scripts":{"build":"node scripts/build.mjs","deploy":"npm run build && npx tgcloud push","migrate":"npx tgcloud migrate","status":"npx tgcloud status"},"type":"module","version":"1.0.0"}
