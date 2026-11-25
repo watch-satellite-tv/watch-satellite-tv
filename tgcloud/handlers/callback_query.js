@@ -1,5 +1,10 @@
 import { api } from 'sdk';
-import { isAdmin, getStats, formatStats, getRecentReports, formatReports, adminPanelMessage, backKeyboard } from '../lib/admin.js';
+import {
+  isAdmin, fa, adminPanelMessage, getStats, formatStats,
+  getRecentReports, formatReports, backKeyboard, broadcast,
+  getAdminState, setAdminState, clearAdminState, clearBroadcastFlow,
+  BROADCAST_PROMPT_TEXT, broadcastConfirmKeyboard,
+} from '../lib/admin.js';
 
 // Inline-button taps from the admin panel (/admin). Owner only.
 export default async function (query) {
@@ -12,26 +17,56 @@ export default async function (query) {
   const chatId = query.message?.chat?.id;
   const messageId = query.message?.message_id;
   if (!chatId || !messageId) return;
+  const edit = async (text, replyMarkup) => {
+    await api.editMessageText({
+      chat_id: chatId, message_id: messageId,
+      text, reply_markup: replyMarkup,
+    });
+  };
   try {
     if (data === 'admin:stats') {
       const stats = await getStats();
-      await api.editMessageText({
-        chat_id: chatId, message_id: messageId,
-        text: formatStats(stats), reply_markup: backKeyboard(),
-      });
+      await edit(formatStats(stats), backKeyboard());
     } else if (data === 'admin:reports') {
       const list = await getRecentReports(10);
-      await api.editMessageText({
-        chat_id: chatId, message_id: messageId,
-        text: formatReports(list), reply_markup: backKeyboard(),
-      });
-    } else if (data === 'admin:panel') {
+      await edit(formatReports(list), backKeyboard());
+    } else if (data === 'admin:broadcast') {
+      // Start the broadcast flow: wait for the admin's text. The
+      // prompt message id is kept so the draft step can restore it
+      // to the panel once the text arrives.
+      await setAdminState('broadcast_awaiting', '1');
+      await setAdminState('broadcast_prompt_msg', String(messageId));
+      await edit(BROADCAST_PROMPT_TEXT, backKeyboard());
+    } else if (data === 'admin:broadcast_confirm') {
+      const pending = await getAdminState('broadcast_pending');
+      if (!pending) {
+        // Stale tap (flow already finished) — just show the panel.
+        await clearBroadcastFlow();
+        const panel = adminPanelMessage();
+        await edit(panel.text, panel.reply_markup);
+      } else {
+        await edit('📣 دارم پیام رو می‌فرستم…', backKeyboard());
+        const result = await broadcast(pending);
+        await clearBroadcastFlow();
+        await edit(
+          '📣 پیام همگانی تموم شد.\n\n' +
+            `کل کاربرا: ${fa(result.total)}\n` +
+            `رسید: ${fa(result.sent)}\n` +
+            `نرسید (بلاک/حذف): ${fa(result.failed)}`,
+          backKeyboard(),
+        );
+      }
+    } else if (data === 'admin:broadcast_cancel') {
+      // Changed his mind — nothing is sent, back to the panel.
+      await clearBroadcastFlow();
       const panel = adminPanelMessage();
-      await api.editMessageText({
-        chat_id: chatId, message_id: messageId,
-        text: panel.text, reply_markup: panel.reply_markup,
-      });
+      await edit(panel.text, panel.reply_markup);
+    } else if (data === 'admin:panel') {
+      await clearBroadcastFlow();
+      const panel = adminPanelMessage();
+      await edit(panel.text, panel.reply_markup);
     } else if (data === 'admin:exit') {
+      await clearBroadcastFlow();
       await api.deleteMessage({ chat_id: chatId, message_id: messageId });
     }
   } catch (e) {

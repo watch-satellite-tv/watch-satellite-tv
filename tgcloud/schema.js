@@ -66,3 +66,12 @@ export const reports = table('reports', {
 }, (t) => ({
   channelIdx: index('idx_reports_channel').on(t.channelId),
 }));
+
+// Tiny key/value store for the admin's multi-step flows (e.g. the
+// broadcast draft). Serverless handlers have no memory between calls,
+// so the flow state lives here, not in a variable.
+export const adminState = table('admin_state', {
+  key: text('key').primaryKey(),
+  value: text('value'),
+  updatedAt: integer('updated_at').default(sql`(unixepoch())`),
+});

@@ -1,7 +1,7 @@
 import { api, db } from 'sdk';
 import { sql, eq, inArray, desc } from 'sdk/db';
 import { OWNER_ID } from './owner.js';
-import { users, favorites, reports, channels } from '../schema.js';
+import { users, favorites, reports, channels, adminState } from '../schema.js';
 
 // Admin panel — owner-only. OWNER_ID lives in tgcloud/lib/owner.js
 // (get it from @userinfobot).
@@ -16,6 +16,7 @@ const ADMIN_KEYBOARD = {
   inline_keyboard: [
     [{ text: '📊 آمار', callback_data: 'admin:stats' }],
     [{ text: '🚩 گزارش‌های خرابی', callback_data: 'admin:reports' }],
+    [{ text: '📣 پیام همگانی', callback_data: 'admin:broadcast' }],
     [{ text: '🚪 خروج از پنل', callback_data: 'admin:exit' }],
   ],
 };
@@ -29,8 +30,8 @@ const BACK_KEYBOARD = {
 
 export const PANEL_TEXT =
   '🛠 پنل مدیریت ماهواره زنده\n\n' +
-  'از اینجا آمار کاربرا و گزارش‌های خرابی رو ببین.\n\n' +
-  'برای پیام همگانی به همه‌ی کاربرا، این دستور رو بفرست:\n' +
+  'از اینجا آمار کاربرا و گزارش‌های خرابی رو ببین و به همه‌ی کاربرا پیام بده.\n\n' +
+  'پیام همگانی با دکمه‌ی «📣 پیام همگانی» هم فرستاده می‌شه، یا مستقیم با دستور:\n' +
   '/broadcast متن پیام';
 
 export function adminPanelMessage() {
@@ -133,6 +134,52 @@ export function formatReports(list) {
     return `• ${r.channel} — کاربر ${r.userId} — ${when}`;
   });
   return '🚩 گزارش‌های خرابی (آخرین‌ها):\n\n' + lines.join('\n');
+}
+
+// --- Broadcast flow state ---
+// Keys in admin_state: 'broadcast_awaiting' ('1' while the panel waits
+// for the admin's text), 'broadcast_pending' (the draft text),
+// 'broadcast_prompt_msg' (the prompt message id, to restore it to the
+// panel once the draft arrives).
+
+export async function getAdminState(key) {
+  const row = await db.select().from(adminState).where(eq(adminState.key, key)).get();
+  return row?.value ?? null;
+}
+
+export async function setAdminState(key, value) {
+  const now = Math.floor(Date.now() / 1000);
+  await db
+    .insert(adminState)
+    .values({ key, value, updatedAt: now })
+    .onConflictDoUpdate({ target: adminState.key, set: { value, updatedAt: now } })
+    .run();
+}
+
+export async function clearAdminState(key) {
+  await db.delete(adminState).where(eq(adminState.key, key)).run();
+}
+
+export async function clearBroadcastFlow() {
+  await Promise.all([
+    clearAdminState('broadcast_awaiting'),
+    clearAdminState('broadcast_pending'),
+    clearAdminState('broadcast_prompt_msg'),
+  ]);
+}
+
+export const BROADCAST_PROMPT_TEXT =
+  '📣 پیام همگانی\n\n' +
+  'متن پیامی که می‌خوای به همه‌ی کاربرا برسه رو بفرست.\n' +
+  'قبل از ارسال، پیش‌نمایش رو می‌بینی و تأیید می‌کنی — تا تأیید نکنی چیزی فرستاده نمی‌شه.';
+
+export function broadcastConfirmKeyboard() {
+  return {
+    inline_keyboard: [
+      [{ text: '✅ تأیید و ارسال به همه', callback_data: 'admin:broadcast_confirm' }],
+      [{ text: '↩ برگشت (ارسال نمی‌شه)', callback_data: 'admin:broadcast_cancel' }],
+    ],
+  };
 }
 
 // --- Broadcast ---

@@ -3,6 +3,8 @@ import { ensureUser } from '../lib/users.js';
 import {
   isAdmin, fa, adminPanelMessage, getStats, formatStats,
   getRecentReports, formatReports, broadcast,
+  getAdminState, setAdminState, clearAdminState, clearBroadcastFlow,
+  broadcastConfirmKeyboard,
 } from '../lib/admin.js';
 
 // Mini App URL — live since the first deploy (2026-11-25).
@@ -34,6 +36,48 @@ export default async function (message) {
 
   // --- Admin commands (owner only) ---
   if (isAdmin(from)) {
+    // Broadcast draft capture: while the panel waits for the text, any
+    // non-command message from the admin is the draft. It is only shown
+    // as a preview — nothing is sent until he taps confirm.
+    if (!text.startsWith('/')) {
+      const awaiting = await getAdminState('broadcast_awaiting');
+      if (awaiting === '1') {
+        if (!text.trim()) {
+          await api.sendMessage({ chat_id: chatId, text: 'متن پیام همگانی رو بفرست 🙂' });
+          return;
+        }
+        if (text.trim().length > 4096) {
+          await api.sendMessage({
+            chat_id: chatId,
+            text: 'پیام همگانی نمی‌تونه بیشتر از ۴۰۹۶ کاراکتر باشه. یه متن کوتاه‌تر بفرست.',
+          });
+          return;
+        }
+        await setAdminState('broadcast_pending', text);
+        await clearAdminState('broadcast_awaiting');
+        // Restore the prompt message back to the panel.
+        const promptId = await getAdminState('broadcast_prompt_msg');
+        if (promptId) {
+          try {
+            const panel = adminPanelMessage();
+            await api.editMessageText({
+              chat_id: chatId, message_id: Number(promptId),
+              text: panel.text, reply_markup: panel.reply_markup,
+            });
+          } catch {}
+          await clearAdminState('broadcast_prompt_msg');
+        }
+        await api.sendMessage({
+          chat_id: chatId,
+          text: '📣 پیش‌نمایش پیام همگانی:\n\n' + text,
+          reply_markup: broadcastConfirmKeyboard(),
+        });
+        return;
+      }
+    }
+    // Any admin command cancels an in-progress broadcast flow.
+    if (text.startsWith('/')) await clearBroadcastFlow();
+
     if (text === '/admin') {
       const panel = adminPanelMessage();
       await api.sendMessage({ chat_id: chatId, text: panel.text, reply_markup: panel.reply_markup });

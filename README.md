@@ -18,7 +18,7 @@
 
 ```bash
 npm install
-cp tgcloud/lib/owner.example.js tgcloud/lib/owner.js   # آیدی عددی تلگرام خودت رو بذار
+cp owner.example.js tgcloud/lib/owner.js   # آیدی عددی تلگرام خودت رو بذار
 npm run build
 TGCLOUD_TOKEN='<token>' npx tgcloud push
 TGCLOUD_TOKEN='<token>' npx tgcloud migrate --yes
