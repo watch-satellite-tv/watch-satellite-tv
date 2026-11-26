@@ -1,7 +1,7 @@
 // Watch Satellite TV — Mini App front-end.
 // Talks to the bot only through Telegram.WebApp.Serverless.call()
 // (endpoints: register, getChannels, getFavorites, toggleFavorite,
-// reportBroken, setLanguage). Playback is direct from the phone to
+// reportBroken, setLanguage, searchAll). Playback is direct from the phone to
 // the origin CDN via hls.js (or native HLS on iOS Safari) — no proxy.
 //
 // i18n: the UI renders in the user's effective language (saved choice,
@@ -20,6 +20,9 @@ const I18N = {
     statusPick: 'یه شبکه رو از لیست پایین انتخاب کن 👇',
     searchPh: 'جستجوی شبکه…',
     favChip: '⭐ علاقه‌مندی‌ها',
+    allChip: '🌍 همه',
+    searchAllHint: 'برای جستجو در همه‌ی دسته‌ها، اسم کانال رو بنویس.',
+    searching: 'در حال جستجو…',
     fasLabel: '🇮🇷 ایران',
     loading: 'در حال بارگذاری شبکه‌ها…',
     refreshed: 'لیست شبکه‌ها به‌روز شد.',
@@ -46,6 +49,9 @@ const I18N = {
     statusPick: 'Pick a channel from the list below 👇',
     searchPh: 'Search channels…',
     favChip: '⭐ Favorites',
+    allChip: '🌍 All',
+    searchAllHint: 'Type a channel name to search all categories.',
+    searching: 'Searching…',
     fasLabel: '🇮🇷 Iran',
     loading: 'Loading channels…',
     refreshed: 'Channel list updated.',
@@ -72,6 +78,9 @@ const I18N = {
     statusPick: '从下方列表中选择一个频道 👇',
     searchPh: '搜索频道…',
     favChip: '⭐ 收藏',
+    allChip: '🌍 全部',
+    searchAllHint: '输入频道名称以搜索所有分类。',
+    searching: '正在搜索…',
     fasLabel: '🇮🇷 伊朗',
     loading: '正在加载频道…',
     refreshed: '频道列表已更新。',
@@ -98,6 +107,9 @@ const I18N = {
     statusPick: 'اختر قناة من القائمة أدناه 👇',
     searchPh: 'ابحث عن قناة…',
     favChip: '⭐ المفضلة',
+    allChip: '🌍 الكل',
+    searchAllHint: 'اكتب اسم القناة للبحث في كل الفئات.',
+    searching: 'جارٍ البحث…',
     fasLabel: '🇮🇷 إيران',
     loading: 'جارٍ تحميل القنوات…',
     refreshed: 'تم تحديث قائمة القنوات.',
@@ -124,6 +136,9 @@ const I18N = {
     statusPick: 'Выберите канал из списка ниже 👇',
     searchPh: 'Поиск каналов…',
     favChip: '⭐ Избранное',
+    allChip: '🌍 Все',
+    searchAllHint: 'Введите название канала для поиска по всем категориям.',
+    searching: 'Поиск…',
     fasLabel: '🇮🇷 Иран',
     loading: 'Загрузка каналов…',
     refreshed: 'Список каналов обновлён.',
@@ -198,6 +213,11 @@ let channels = [];
 let favorites = new Set();
 let currentChannel = null;
 let query = '';
+// Search All mode: results come from the searchAll endpoint (all feeds),
+// not from the current feed's cached list.
+let allResults = [];
+let searchTimer = null;
+let searchSeq = 0;
 
 function call(name, input) {
   return new Promise((resolve, reject) => {
@@ -239,7 +259,7 @@ function applyLang(l) {
 
 function renderChips() {
   chipsEl.innerHTML = '';
-  const all = [{ key: 'fav', label: S('favChip') }].concat(feeds);
+  const all = [{ key: 'fav', label: S('favChip') }, { key: 'all', label: S('allChip') }].concat(feeds);
   all.forEach((f) => {
     const b = document.createElement('button');
     b.type = 'button';
@@ -257,6 +277,7 @@ function renderChips() {
 }
 
 function filtered() {
+  if (currentFeed === 'all') return allResults;
   const q = query.trim().toLowerCase();
   if (!q) return channels;
   return channels.filter((c) => (c.name + ' ' + (c.group || '')).toLowerCase().includes(q));
@@ -386,6 +407,14 @@ async function loadFeed() {
       renderList();
       return;
     }
+    if (currentFeed === 'all') {
+      // Search All needs a query: show the hint until the user types.
+      channels = [];
+      allResults = [];
+      setStatus(S('searchAllHint'));
+      renderList();
+      return;
+    }
     const res = await call('getChannels', { feed: currentFeed });
     // The server is authoritative about the feed key: if the feed the
     // app had selected no longer exists (e.g. merged away), follow
@@ -411,7 +440,33 @@ reportBtn.addEventListener('click', async () => {
     setStatus(S('reportFail'), true);
   }
 });
-searchEl.addEventListener('input', () => { query = searchEl.value; renderList(); });
+searchEl.addEventListener('input', () => {
+  query = searchEl.value;
+  if (currentFeed !== 'all') { renderList(); return; }
+  // Search All: debounced server search across every feed.
+  clearTimeout(searchTimer);
+  const q = query.trim();
+  if (q.length < 2) {
+    allResults = [];
+    setStatus(S('searchAllHint'));
+    renderList();
+    return;
+  }
+  setStatus(S('searching'));
+  const seq = ++searchSeq;
+  searchTimer = setTimeout(async () => {
+    try {
+      const res = await call('searchAll', { q });
+      if (seq !== searchSeq) return;
+      allResults = res.channels || [];
+      setStatus(allResults.length ? '' : S('empty'));
+      renderList();
+    } catch (e) {
+      if (seq !== searchSeq) return;
+      setStatus(S('loadFail'), true);
+    }
+  }, 300);
+});
 if (langSelect) {
   langSelect.addEventListener('change', async () => {
     const next = langSelect.value;
