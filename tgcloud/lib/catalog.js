@@ -376,8 +376,19 @@ export function parseM3u(text) {
     const line = lines[i].trim();
     if (!line.startsWith('#EXTINF:')) continue;
     const name = (line.split(',').slice(1).join(',') || '').trim();
-    const url = (lines[i + 1] || '').trim();
-    if (!url || url.startsWith('#')) continue;
+    // The URL is the next non-empty, non-# line: some upstream entries
+    // put #EXTVLCOPT lines between #EXTINF and the URL, and the old
+    // code (lines[i+1] only) silently dropped those 826 channels.
+    let url = '';
+    for (let j = i + 1; j < lines.length; j++) {
+      const next = lines[j].trim();
+      if (!next) continue;
+      if (next.startsWith('#EXTINF:')) break;
+      if (next.startsWith('#')) continue;
+      url = next;
+      break;
+    }
+    if (!url) continue;
     // Some upstream lines are malformed and carry attributes AFTER the
     // comma, e.g. `,Afra Film group-title="فیلم و موسیقی"` — strip any
     // trailing attr="..." fragments out of the display name.
