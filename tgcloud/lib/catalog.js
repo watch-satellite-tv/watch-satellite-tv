@@ -61,6 +61,11 @@ const EXTRA_FAS = [
   { name: 'آی‌فیلم ۲', logo: 'https://i.imgur.com/WZrGsFb.png', group: 'فیلم و سریال', url: 'https://live.presstv.co.uk/hls/ifilm2.m3u8' },
   { name: 'آی‌فیلم عربی', logo: 'https://i.imgur.com/D3cXTpJ.png', group: 'فیلم و سریال', url: 'https://live.presstv.co.uk/hls/ifilmar.m3u8' },
   { name: 'آی‌فیلم انگلیسی', logo: 'https://i.imgur.com/RdC0DQk.png', group: 'فیلم و سریال', url: 'https://live.presstv.co.uk/hls/ifilmen.m3u8' },
+  // GEM Sport — the only GEM stream that plays directly (verified
+  // 2026-11-26: https + HTTP 200 + CORS *). The other GEM channels
+  // are all 403 on onetv.app from here; see issue #13846. Logo from
+  // livefarsi.com (the page that lists this stream).
+  { name: 'جم اسپورت', logo: 'https://www.livefarsi.com/uploads/tv_image/gem-tv-sport.jpg', group: 'ورزشی', url: 'https://cp11.adabmedia.com/hls2/sport.m3u8' },
 ];
 
 export const REFRESH_AFTER_S = 12 * 3600; // 12 hours
