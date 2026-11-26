@@ -160,6 +160,27 @@ const EXTRA_FAS = [
   { name: 'بی‌بی‌سی فارسی', logo: 'https://fatv.live/logo/9c5bdcdde5c74a9bb8a694245d9d08b1-bbcper.jpg', group: 'خبر', url: 'https://ib.abntv.live/hls/bbcperfatv.m3u8' },
   { name: 'خانه هنرمندان', logo: 'https://fatv.live/logo/khh.jpg', group: 'سرگرمی', url: 'https://ib.abntv.live/hls/khh.m3u8' },
   { name: 'پامیر', logo: 'https://fatv.live/logo/43a9a9f84ad94a72bfd54dff93d93c20-PamirTV.jpg', group: 'عمومی', url: 'https://ib.abntv.live/hls/pamirtv.m3u8' },
+  // Deep sweep (2026-11-26): streamzhd + livefarsi + Quincunx
+  // ir.m3u + iptv-org prd.m3u — all probed live, HTTP 200 + CORS *
+  // (play everywhere). The gg.hls2.xyz family (Manoto, GEM TV
+  // main, Tolo, ...) is 403/404 even via livefarsi's worker
+  // proxy — dead, NOT added.
+  { name: 'AMG', logo: 'https://www.livefarsi.com/uploads/tv_image/amg-tv.jpg', group: 'سرگرمی', url: 'https://streamer1.connectto.com/AMGA_WEB_1202/tracks-v1a1/mono.ts.m3u8' },
+  { name: 'ATN اروپا', logo: 'https://www.livefarsi.com/uploads/tv_image/atn-europe-tv.jpg', group: 'سرگرمی', url: 'https://tgn.bozztv.com/eshgtv-dvrfl05/gin-ariana/tracks-v1a1/mono.m3u8' },
+  { name: 'الولایه', logo: 'https://i.imgur.com/OI1HQv5.png', group: 'مذهبی', url: 'https://nl.livekadeh.com/hls2/alwilayah_tv.m3u8' },
+  { name: 'آمو', logo: '', group: 'خبر', url: 'https://jmc-live.ercdn.net/amutv/amutv.m3u8' },
+  { name: 'اصیل', logo: 'https://i.imgur.com/gROQqFD.png', group: 'عمومی', url: 'https://live.asil.tv/asiltv/index.m3u8' },
+  { name: 'الصراط', logo: '', group: 'مذهبی', url: 'https://softverse.b-cdn.net/Assirat/assiratobs/playlist.m3u8' },
+  { name: 'کلمه', logo: 'https://www.livefarsi.com/uploads/tv_image/kalemeh-tv.jpg', group: 'مذهبی', url: 'https://player.kalemeh.tv/live/ngrp:kalemeh_all/playlist.m3u8' },
+  { name: 'کارون', logo: 'https://static.telewebion.com/channelsLogo/448a8dca-ab58-4533-8d71-ad74b8812c79/default', group: 'عمومی', url: 'https://ncdn.telewebion.ir/karoon/live/playlist.m3u8' },
+  { name: 'پیوند', logo: 'https://www.livefarsi.com/uploads/tv_image/payvand-tv.jpg', group: 'عمومی', url: 'https://uni6rtmp.tulix.tv/ucur1/Payvand/tracks-v1a1/mono.m3u8' },
+  { name: 'رسول‌الله', logo: '', group: 'مذهبی', url: 'https://avr.host247.net/live/rasoulallahtv/playlist.m3u8' },
+  { name: 'شمس', logo: '', group: 'عمومی', url: 'https://fflive-darya-educationtv.b-cdn.net/master.m3u8' },
+  { name: 'سهیل', logo: '', group: 'عمومی', url: 'https://iptv.sohailtv.com/sohail/playlist/index.m3u8' },
+  { name: 'طرفداری', logo: '', group: 'ورزشی', url: 'https://cp11.adabmedia.com/hls2/bein1.m3u8' },
+  { name: 'وایز هیومن', logo: '', group: 'عمومی', url: 'https://avr.host247.net/live/WiseHumanTv/playlist.m3u8' },
+  // Same sweep, HTTP 200 but NO CORS — iPhone native HLS only.
+  { name: 'نگاه', logo: 'https://www.livefarsi.com/uploads/tv_image/negah-tv.jpg', group: 'عمومی', url: 'https://hls.ashena.live/hls/stream.m3u8' },
 ];
 
 export const REFRESH_AFTER_S = 12 * 3600; // 12 hours
