@@ -112,6 +112,11 @@ export const FEEDS = {
   zw: { label: '🇿🇼 زیمبابوه', url: 'https://iptv-org.github.io/iptv/countries/zw.m3u' },
   ci: { label: '🇨🇮 ساحل عاج', url: 'https://iptv-org.github.io/iptv/countries/ci.m3u' },
   ws: { label: '🇼🇸 ساموآ', url: 'https://iptv-org.github.io/iptv/countries/ws.m3u' },
+  // Manual feed — channels from iptv-org's database that belong to NO
+  // country playlist (2026-11-26 full diff: 2,228 such channels,
+  // 4,426 streams). No playlist source: rows come from the streams.json
+  // import, and refreshFeed() skips manual feeds so they survive.
+  other: { label: '🌍 سایر', manual: true },
   lk: { label: '🇱🇰 سری‌لانکا', url: 'https://iptv-org.github.io/iptv/countries/lk.m3u' },
   sm: { label: '🇸🇲 سن مارینو', url: 'https://iptv-org.github.io/iptv/countries/sm.m3u' },
   lc: { label: '🇱🇨 سنت لوسیا', url: 'https://iptv-org.github.io/iptv/countries/lc.m3u' },
@@ -411,6 +416,21 @@ async function refreshFeed(feed) {
   if (!def) return 0;
   const sources = def.sources || [{ key: feed, url: def.url }];
   const now = Math.floor(Date.now() / 1000);
+  // Manual feeds (no playlist source, e.g. 'other') are curated, not
+  // fetched: their rows must survive every refresh. Just refresh the
+  // cache stamp so getFeedChannels doesn't retry on every open.
+  if (def.manual || (!def.url && !def.sources)) {
+    const count = await db.$count(channels, eq(channels.feed, feed));
+    await db
+      .insert(cacheMeta)
+      .values({ key: 'feed:' + feed, value: String(count), updatedAt: now })
+      .onConflictDoUpdate({
+        target: cacheMeta.key,
+        set: { value: String(count), updatedAt: now },
+      })
+      .run();
+    return count;
+  }
   // Fetch every source playlist, parse, filter per source, dedupe by
   // URL (first source wins), then replace the feed wholesale.
   const seen = new Set();
