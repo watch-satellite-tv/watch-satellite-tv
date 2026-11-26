@@ -52,10 +52,18 @@ export const FEEDS = {
   entertainment: { label: 'سرگرمی', url: 'https://iptv-org.github.io/iptv/categories/entertainment.m3u' },
 };
 
-// Hand-picked extras for the Persian feed: the iFilm channels from
-// Free-TV/IPTV's iran.md — neither upstream playlist carries them.
-// Verified live 2026-11-26 (https + HTTP 200 + CORS *). Logos are the
-// ones Free-TV/IPTV uses for these channels (imgur).
+// Hand-picked extras for the Persian feed — channels neither upstream
+// playlist carries, verified by a live probe before adding:
+// - iFilm (Free-TV/IPTV iran.md): https + HTTP 200 + CORS *.
+// - GEM Sport (livefarsi): https + HTTP 200 + CORS *.
+// - GEM x13 + Persiana x4 (FATV directory, fatv.live): GEM streams
+//   answer HTTP 200 but send NO CORS header — they play through the
+//   iPhone's native HLS player (no CORS needed there) but hls.js on
+//   Android/desktop will refuse them. Persiana China/Podcast/Teen/
+//   Voyage are 200 + CORS * (play everywhere).
+// - Persiana Sports 1–4 (IR Only): 403 + CORS * from this VM —
+//   labelled IR-only upstream, kept on the Telewebion logic (likely
+//   Iran-reachable); the user's phone test is the decider.
 const EXTRA_FAS = [
   { name: 'آی‌فیلم', logo: 'https://i.imgur.com/4Z9L1AW.png', group: 'فیلم و سریال', url: 'https://live.presstv.co.uk/hls/ifilmfa.m3u8' },
   { name: 'آی‌فیلم ۲', logo: 'https://i.imgur.com/WZrGsFb.png', group: 'فیلم و سریال', url: 'https://live.presstv.co.uk/hls/ifilm2.m3u8' },
@@ -66,6 +74,31 @@ const EXTRA_FAS = [
   // are all 403 on onetv.app from here; see issue #13846. Logo from
   // livefarsi.com (the page that lists this stream).
   { name: 'جم اسپورت', logo: 'https://www.livefarsi.com/uploads/tv_image/gem-tv-sport.jpg', group: 'ورزشی', url: 'https://cp11.adabmedia.com/hls2/sport.m3u8' },
+  // GEM via FATV (ib.abntv.live) — HTTP 200, no CORS (iPhone only).
+  { name: 'جم بالیوود', logo: 'https://fatv.live/logo/GemBollywood.jpg', group: 'فیلم و سریال', url: 'https://ib.abntv.live/hls/gembolly.m3u8' },
+  { name: 'جم کلاسیک', logo: 'https://fatv.live/logo/30b552ae63424f498cfc0c08d74cd060-GEMClassic.jpg', group: 'فیلم و سریال', url: 'https://ib.abntv.live/hls/gemclassic.m3u8' },
+  { name: 'جم کمدی', logo: 'https://fatv.live/logo/gemseries.jpg', group: 'سرگرمی', url: 'https://ib.abntv.live/hls/gemcom.m3u8' },
+  { name: 'جم انترتینمنت', logo: 'https://fatv.live/logo/GEMGeneral.jpg', group: 'سرگرمی', url: 'https://ib.abntv.live/hls/gement.m3u8' },
+  { name: 'جم فیت', logo: 'https://fatv.live/logo/317b9cc64bce48448815f8cd18851923-GEMFit.jpg', group: 'ورزشی', url: 'https://ib.abntv.live/hls/gemfit.m3u8' },
+  { name: 'جم فیلم', logo: 'https://fatv.live/logo/GEMGeneral.jpg', group: 'فیلم و سریال', url: 'https://ib.abntv.live/hls/gemfilm.m3u8' },
+  { name: 'جم فود', logo: 'https://fatv.live/logo/GEMGeneral.jpg', group: 'آشپزی', url: 'https://ib.abntv.live/hls/gemfood.m3u8' },
+  { name: 'جم فود ۲', logo: 'https://fatv.live/logo/7ce162632f2045899aa39bd58819a636-gem-food.png', group: 'آشپزی', url: 'https://ib.abntv.live/hls/gemf2.m3u8' },
+  { name: 'جم جونیور', logo: 'https://fatv.live/logo/GEMJunior.jpg', group: 'کودک', url: 'https://ib.abntv.live/hls/gemjun.m3u8' },
+  { name: 'جم کیدز', logo: 'https://fatv.live/logo/2892768890564bbc89e1b94832722abe-GEMKids.jpg', group: 'کودک', url: 'https://ib.abntv.live/hls/gemkids.m3u8' },
+  { name: 'جم لایف', logo: 'https://fatv.live/logo/def1b08e166d4accad91dd77f17a7347-GEMLife.jpeg', group: 'سرگرمی', url: 'https://ib.abntv.live/hls/gemlife.m3u8' },
+  { name: 'جم نیچر', logo: 'https://fatv.live/logo/GEMGeneral.jpg', group: 'مستند', url: 'https://ib.abntv.live/hls/gemnat.m3u8' },
+  { name: 'جم پیکسل', logo: 'https://fatv.live/logo/2df4014453074538ad47ce4e75daf4ed-GEMPixel.jpg', group: 'فیلم و سریال', url: 'https://ib.abntv.live/hls/gempixel.m3u8' },
+  // Persiana via FATV — 200 + CORS * (play everywhere).
+  { name: 'پرشیانا چین', logo: 'https://fatv.live/logo/persianaGeneral.png', group: 'سرگرمی', url: 'https://chinahls.persiana.live/hls/stream.m3u8' },
+  { name: 'پرشیانا پادکست', logo: 'https://fatv.live/logo/persianaGeneral.png', group: 'موسیقی', url: 'https://podhls.persiana.live/hls/stream.m3u8' },
+  { name: 'پرشیانا تین', logo: 'https://fatv.live/logo/persianaGeneral.png', group: 'سرگرمی', url: 'https://teenhls.persiana.live/hls/stream.m3u8' },
+  { name: 'پرشیانا وویاژ', logo: 'https://fatv.live/logo/persianaGeneral.png', group: 'سرگرمی', url: 'https://voyhls.persiana.live/hls/stream.m3u8' },
+  // Persiana Sports 1–4 (IR Only) — 403 from this VM, kept on the
+  // Telewebion logic; phone test decides.
+  { name: 'پرشیانا اسپورت ۱', logo: 'https://fatv.live/logo/7d640fde982a44138c2b19859698be55-PersianaSport.jpg', group: 'ورزشی', url: 'https://live.persianasports.net/hls/psports1.m3u8' },
+  { name: 'پرشیانا اسپورت ۲', logo: 'https://fatv.live/logo/ed303222ce1f48bfa0b984b8314b66fd-PersianaSport.jpg', group: 'ورزشی', url: 'https://live.persianasports.net/hls/psports2.m3u8' },
+  { name: 'پرشیانا اسپورت ۳', logo: 'https://fatv.live/logo/8bcf61c145ad406dabae8589afeb9e3c-PersianaSport.jpg', group: 'ورزشی', url: 'https://live.persianasports.net/hls/psports3.m3u8' },
+  { name: 'پرشیانا اسپورت ۴', logo: 'https://fatv.live/logo/3320256d0ac147079d34f2e8ad48abdb-PersianaSport.jpg', group: 'ورزشی', url: 'https://live.persianasports.net/hls/psports4.m3u8' },
 ];
 
 export const REFRESH_AFTER_S = 12 * 3600; // 12 hours
