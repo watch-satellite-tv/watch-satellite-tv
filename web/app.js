@@ -279,7 +279,7 @@ function renderList() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'item' + (currentChannel && currentChannel.id === c.id ? ' playing' : '');
-    // Logo missing or broken -> orange play tile (no app-logo fallback).
+    // Logo missing or broken -> red play tile (no app-logo fallback).
     const logoEl = c.logo ? document.createElement('img') : playIcon();
     if (c.logo) {
       logoEl.className = 'item-logo';

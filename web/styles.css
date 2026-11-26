@@ -1,12 +1,12 @@
 :root {
-  --bg: #17100c;
-  --surface: #241a14;
-  --surface2: #2f221a;
-  --text: #fff5ec;
-  --muted: #c9a98f;
-  --accent: #ff8c1a;
-  --accent2: #e63946;
-  --border: #453426;
+  --bg: #140a0a;
+  --surface: #220f0f;
+  --surface2: #2d1414;
+  --text: #fff5f5;
+  --muted: #c9a0a0;
+  --accent: #ff0000;
+  --accent2: #cc0000;
+  --border: #402020;
 }
 * { box-sizing: border-box; }
 /* `hidden` must win over the display:flex rules below (.idle-overlay,
@@ -59,6 +59,6 @@ video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 14px
 .item-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item-group { font-size: 12px; color: var(--muted); }
 .item-star { font-size: 20px; color: var(--accent); background: none; border: none; cursor: pointer; padding: 4px; }
-.item-star.off { color: #6b5646; }
+.item-star.off { color: #6b4a4a; }
 .empty { text-align: center; color: var(--muted); padding: 24px 0; }
 .note { font-size: 12px; color: var(--muted); line-height: 1.8; margin: 18px 2px 0; }
