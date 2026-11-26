@@ -262,6 +262,13 @@ function filtered() {
   return channels.filter((c) => (c.name + ' ' + (c.group || '')).toLowerCase().includes(q));
 }
 
+function playIcon() {
+  const s = document.createElement('span');
+  s.className = 'item-play';
+  s.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+  return s;
+}
+
 function renderList() {
   const rows = filtered();
   listEl.innerHTML = '';
@@ -272,13 +279,15 @@ function renderList() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'item' + (currentChannel && currentChannel.id === c.id ? ' playing' : '');
-    const img = document.createElement('img');
-    img.className = 'item-logo';
-    img.alt = '';
-    img.loading = 'lazy';
-    img.src = c.logo || 'logo.webp';
-    if (!c.logo) img.classList.add('fallback');
-    img.onerror = () => { img.src = 'logo.webp'; img.classList.add('fallback'); };
+    // Logo missing or broken -> orange play tile (no app-logo fallback).
+    const logoEl = c.logo ? document.createElement('img') : playIcon();
+    if (c.logo) {
+      logoEl.className = 'item-logo';
+      logoEl.alt = '';
+      logoEl.loading = 'lazy';
+      logoEl.src = c.logo;
+      logoEl.onerror = () => { logoEl.replaceWith(playIcon()); };
+    }
     const body = document.createElement('div');
     body.className = 'item-body';
     const name = document.createElement('div');
@@ -298,7 +307,7 @@ function renderList() {
       e.stopPropagation();
       toggleFav(c);
     });
-    btn.appendChild(img);
+    btn.appendChild(logoEl);
     btn.appendChild(body);
     btn.appendChild(star);
     btn.addEventListener('click', () => play(c));

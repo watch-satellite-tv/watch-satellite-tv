@@ -54,7 +54,8 @@ video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 14px
 .item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; color: var(--text); font-family: inherit; cursor: pointer; }
 .item.playing { border-color: var(--accent); }
 .item-logo { width: 44px; height: 44px; border-radius: 8px; object-fit: contain; background: #fff; flex: 0 0 auto; }
-.item-logo.fallback { object-fit: cover; }
+.item-play { width: 44px; height: 44px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent2)); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+.item-play svg { width: 20px; height: 20px; fill: #fff; margin-inline-start: 2px; }
 .item-body { flex: 1; min-width: 0; }
 .item-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item-group { font-size: 12px; color: var(--muted); }
