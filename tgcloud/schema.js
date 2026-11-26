@@ -11,6 +11,9 @@ export const users = table('users', {
   username: text('username'),
   firstName: text('first_name'),
   languageCode: text('language_code'),
+  // The user's chosen UI language (fa/en/zh/ar/ru). NULL = not chosen
+  // yet — /start shows the language picker until they pick one.
+  language: text('language'),
   createdAt: integer('created_at').default(sql`(unixepoch())`),
   lastSeenAt: integer('last_seen_at').default(sql`(unixepoch())`),
 });

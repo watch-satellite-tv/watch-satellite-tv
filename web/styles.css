@@ -26,6 +26,7 @@ body {
 .brand { display: flex; flex-direction: column; }
 .brand-title { font-size: 22px; font-weight: 800; line-height: 1.2; }
 .brand-sub { font-size: 12px; color: var(--muted); }
+.lang-select { margin-inline-start: auto; flex: 0 0 auto; max-width: 118px; padding: 6px 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 13px; cursor: pointer; outline: none; }
 .player { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-bottom: 8px; }
 .video-wrap { position: relative; }
 video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 14px; display: block; }

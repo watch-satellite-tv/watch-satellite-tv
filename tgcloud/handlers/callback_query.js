@@ -1,4 +1,6 @@
 import { api } from 'sdk';
+import { setUserLanguage } from '../lib/users.js';
+import { t, isLang, languagePickerKeyboard, welcomeKeyboard } from '../lib/i18n.js';
 import {
   isAdmin, fa, adminPanelMessage, getStats, formatStats,
   getRecentReports, formatReports, backKeyboard, broadcast,
@@ -6,17 +8,45 @@ import {
   BROADCAST_PROMPT_TEXT, broadcastConfirmKeyboard,
 } from '../lib/admin.js';
 
-// Inline-button taps from the admin panel (/admin). Owner only.
+// Inline-button taps: language picker (everyone) + admin panel (owner).
 export default async function (query) {
   const from = query.from;
-  if (!isAdmin(from)) {
-    try { await api.answerCallbackQuery({ callback_query_id: query.id }); } catch {}
-    return;
-  }
   const data = query.data || '';
   const chatId = query.message?.chat?.id;
   const messageId = query.message?.message_id;
   if (!chatId || !messageId) return;
+
+  // --- Language picker (any user) ---
+  if (data === 'lang:pick') {
+    try {
+      await api.editMessageText({
+        chat_id: chatId, message_id: messageId,
+        text: t('pickPrompt', 'fa'), reply_markup: languagePickerKeyboard(),
+      });
+    } catch (e) { console.error('lang pick failed', e); }
+    try { await api.answerCallbackQuery({ callback_query_id: query.id }); } catch {}
+    return;
+  }
+  if (data.startsWith('lang:')) {
+    const lang = data.slice('lang:'.length);
+    if (isLang(lang)) {
+      await setUserLanguage(from?.id, lang);
+      try {
+        await api.editMessageText({
+          chat_id: chatId, message_id: messageId,
+          text: t('langSet', lang) + '\n\n' + t('welcome', lang),
+          reply_markup: welcomeKeyboard(lang),
+        });
+      } catch (e) { console.error('lang set failed', e); }
+    }
+    try { await api.answerCallbackQuery({ callback_query_id: query.id }); } catch {}
+    return;
+  }
+
+  if (!isAdmin(from)) {
+    try { await api.answerCallbackQuery({ callback_query_id: query.id }); } catch {}
+    return;
+  }
   const edit = async (text, replyMarkup) => {
     await api.editMessageText({
       chat_id: chatId, message_id: messageId,

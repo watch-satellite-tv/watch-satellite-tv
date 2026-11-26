@@ -16,9 +16,16 @@
     <header class="topbar">
       <img class="logo" src="logo.webp" alt="ماهواره زنده">
       <div class="brand">
-        <span class="brand-title">ماهواره زنده</span>
-        <span class="brand-sub">پخش زنده‌ی شبکه‌های ماهواره‌ای، بدون دیش</span>
+        <span class="brand-title" id="brandTitle">ماهواره زنده</span>
+        <span class="brand-sub" id="brandSub">پخش زنده‌ی شبکه‌های ماهواره‌ای، بدون دیش</span>
       </div>
+      <select id="langSelect" class="lang-select" aria-label="Language">
+        <option value="fa">🇮🇷 فارسی</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="zh">🇨🇳 中文</option>
+        <option value="ar">🇸🇦 العربية</option>
+        <option value="ru">🇷🇺 Русский</option>
+      </select>
     </header>
 
     <section class="player" id="playerBox">
@@ -26,7 +33,7 @@
         <video id="video" controls playsinline preload="none"></video>
         <div class="idle-overlay" id="idleOverlay">
           <span class="big-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></span>
-          <span class="idle-text">برای تماشا، یه شبکه رو انتخاب کن</span>
+          <span class="idle-text" id="idleText">برای تماشا، یه شبکه رو انتخاب کن</span>
         </div>
       </div>
       <div class="now-playing" id="nowPlaying" hidden>
@@ -47,7 +54,7 @@
       <p class="count" id="count"></p>
       <ul class="list" id="list"></ul>
       <p class="empty" id="empty" hidden>چیزی پیدا نشد.</p>
-      <p class="note">فقط شبکه‌هایی نشون داده می‌شن که مستقیم توی گوشی پخش می‌شن. اگه شبکه‌ای پخش نشد، دکمه‌ی «گزارش بده» رو بزن تا بررسی بشه.</p>
+      <p class="note" id="noteText">فقط شبکه‌هایی نشون داده می‌شن که مستقیم توی گوشی پخش می‌شن. اگه شبکه‌ای پخش نشد، دکمه‌ی «گزارش بده» رو بزن تا بررسی بشه.</p>
     </main>
   </div>
   <script src="app.js"></script>

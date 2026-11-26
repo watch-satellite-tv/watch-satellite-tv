@@ -1,6 +1,26 @@
 import { db } from 'sdk';
 import { eq } from 'sdk/db';
 import { users } from '../schema.js';
+import { isLang } from './i18n.js';
+
+// Save the user's chosen UI language. Returns false for an unknown code.
+export async function setUserLanguage(tgId, lang) {
+  if (!tgId || !isLang(lang)) return false;
+  await db
+    .update(users)
+    .set({ language: lang })
+    .where(eq(users.tgId, tgId))
+    .run();
+  return true;
+}
+
+// The user's saved language choice, or null when they haven't picked
+// one yet (independent of their Telegram language_code).
+export async function getUserLanguage(tgId) {
+  if (!tgId) return null;
+  const row = await db.select().from(users).where(eq(users.tgId, tgId)).get();
+  return row?.language || null;
+}
 
 // Upsert a Telegram user on first sight, refreshing last_seen and any
 // changed profile fields on every sight. `from` is a Telegram User

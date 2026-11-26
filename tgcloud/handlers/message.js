@@ -1,5 +1,6 @@
 import { api } from 'sdk';
 import { ensureUser } from '../lib/users.js';
+import { t, languagePickerKeyboard, welcomeKeyboard, MINI_APP_URL } from '../lib/i18n.js';
 import {
   isAdmin, fa, adminPanelMessage, getStats, formatStats,
   getRecentReports, formatReports, broadcast,
@@ -7,29 +8,43 @@ import {
   broadcastConfirmKeyboard,
 } from '../lib/admin.js';
 
-// Mini App URL — live since the first deploy (2026-11-25).
-const MINI_APP_URL = 'https://app9110256990.tgcloud.ai/';
-
 export default async function (message) {
   if (message.chat?.type && message.chat.type !== 'private') return;
   const chatId = message.chat.id;
   const from = message.from;
   if (!from?.id) return;
 
-  await ensureUser(from);
+  const row = await ensureUser(from);
+  const lang = row?.language || 'fa';
 
   const text = message.text || '';
 
-  // /start (with or without args) — the only command regular users need.
+  // /start — new users (no saved language) pick a language first;
+  // returning users get the welcome in their language, with a button
+  // to change it.
   if (text.startsWith('/start')) {
+    if (!row?.language) {
+      await api.sendMessage({
+        chat_id: chatId,
+        text: t('pickPrompt', 'fa'),
+        reply_markup: languagePickerKeyboard(),
+      });
+      return;
+    }
     await api.sendMessage({
       chat_id: chatId,
-      text:
-        '📡 به «ماهواره زنده» خوش اومدی!\n\n' +
-        'پخش زنده‌ی شبکه‌های ماهواره‌ای، بدون دیش، با اینترنت — شبکه‌های فارسی و جهانی رو انتخاب کن و تماشا کن.',
-      reply_markup: {
-        inline_keyboard: [[{ text: '📺 باز کردن ماهواره زنده', web_app: { url: MINI_APP_URL } }]],
-      },
+      text: t('welcome', lang),
+      reply_markup: welcomeKeyboard(lang),
+    });
+    return;
+  }
+
+  // /language — show the picker again, anytime.
+  if (text === '/language') {
+    await api.sendMessage({
+      chat_id: chatId,
+      text: t('pickPrompt', lang),
+      reply_markup: languagePickerKeyboard(),
     });
     return;
   }
@@ -123,12 +138,10 @@ export default async function (message) {
     }
   }
 
-  // Any other text: point back to the Mini App.
+  // Any other text: point back to the Mini App, in the user's language.
   await api.sendMessage({
     chat_id: chatId,
-    text: 'برای تماشای شبکه‌ها، مینی‌اپ رو باز کن 👇',
-    reply_markup: {
-      inline_keyboard: [[{ text: '📺 باز کردن ماهواره زنده', web_app: { url: MINI_APP_URL } }]],
-    },
+    text: t('pointer', lang),
+    reply_markup: welcomeKeyboard(lang),
   });
 }
