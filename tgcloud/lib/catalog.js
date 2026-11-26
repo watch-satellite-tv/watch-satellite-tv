@@ -17,23 +17,51 @@ import { PLAYABLE_FAS, PERSIANA_DEAD } from './probe.js';
 export const FEEDS = {
   // 'fas' merges two playlists into ONE Persian feed: iptv-org's
   // fas.m3u (verified playable only) + Persiana TV's final.m3u
-  // (Telewebion/IRIB channels etc., minus radio and dead links).
+  // (Telewebion/IRIB channels etc., minus radio and dead links),
+  // plus the hand-picked iFilm extras (EXTRA_FAS). It is the Iran
+  // feed: first chip, labelled 🇮🇷 ایران in every language.
   // Rows are deduped by URL, persiana source FIRST so the Persian
   // display names win (شبکه ۱ instead of IRIB 1); fas rows backfill
   // anything persiana filtered out.
   fas: {
-    label: 'فارسی',
+    label: '🇮🇷 ایران',
     sources: [
       { key: 'persiana', url: 'https://raw.githubusercontent.com/Samhouston010/persiana-tv-epg/main/final.m3u' },
       { key: 'fas', url: 'https://iptv-org.github.io/iptv/languages/fas.m3u' },
     ],
   },
+  // Country feeds — one iptv-org playlist each, Iran first. No probe
+  // data for these (same as the category feeds below: everything
+  // https is kept). gb.m3u does not exist upstream (404), so the UK
+  // is not here until iptv-org publishes it.
+  us: { label: '🇺🇸 آمریکا', url: 'https://iptv-org.github.io/iptv/countries/us.m3u' },
+  tr: { label: '🇹🇷 ترکیه', url: 'https://iptv-org.github.io/iptv/countries/tr.m3u' },
+  sa: { label: '🇸🇦 عربستان', url: 'https://iptv-org.github.io/iptv/countries/sa.m3u' },
+  ae: { label: '🇦🇪 امارات', url: 'https://iptv-org.github.io/iptv/countries/ae.m3u' },
+  de: { label: '🇩🇪 آلمان', url: 'https://iptv-org.github.io/iptv/countries/de.m3u' },
+  fr: { label: '🇫🇷 فرانسه', url: 'https://iptv-org.github.io/iptv/countries/fr.m3u' },
+  ru: { label: '🇷🇺 روسیه', url: 'https://iptv-org.github.io/iptv/countries/ru.m3u' },
+  cn: { label: '🇨🇳 چین', url: 'https://iptv-org.github.io/iptv/countries/cn.m3u' },
+  in: { label: '🇮🇳 هند', url: 'https://iptv-org.github.io/iptv/countries/in.m3u' },
+  af: { label: '🇦🇫 افغانستان', url: 'https://iptv-org.github.io/iptv/countries/af.m3u' },
+  iq: { label: '🇮🇶 عراق', url: 'https://iptv-org.github.io/iptv/countries/iq.m3u' },
   news: { label: 'خبری', url: 'https://iptv-org.github.io/iptv/categories/news.m3u' },
   movies: { label: 'فیلم', url: 'https://iptv-org.github.io/iptv/categories/movies.m3u' },
   sports: { label: 'ورزشی', url: 'https://iptv-org.github.io/iptv/categories/sports.m3u' },
   music: { label: 'موسیقی', url: 'https://iptv-org.github.io/iptv/categories/music.m3u' },
   entertainment: { label: 'سرگرمی', url: 'https://iptv-org.github.io/iptv/categories/entertainment.m3u' },
 };
+
+// Hand-picked extras for the Persian feed: the iFilm channels from
+// Free-TV/IPTV's iran.md — neither upstream playlist carries them.
+// Verified live 2026-11-26 (https + HTTP 200 + CORS *). Logos are the
+// ones Free-TV/IPTV uses for these channels (imgur).
+const EXTRA_FAS = [
+  { name: 'آی‌فیلم', logo: 'https://i.imgur.com/4Z9L1AW.png', group: 'فیلم و سریال', url: 'https://live.presstv.co.uk/hls/ifilmfa.m3u8' },
+  { name: 'آی‌فیلم ۲', logo: 'https://i.imgur.com/WZrGsFb.png', group: 'فیلم و سریال', url: 'https://live.presstv.co.uk/hls/ifilm2.m3u8' },
+  { name: 'آی‌فیلم عربی', logo: 'https://i.imgur.com/D3cXTpJ.png', group: 'فیلم و سریال', url: 'https://live.presstv.co.uk/hls/ifilmar.m3u8' },
+  { name: 'آی‌فیلم انگلیسی', logo: 'https://i.imgur.com/RdC0DQk.png', group: 'فیلم و سریال', url: 'https://live.presstv.co.uk/hls/ifilmen.m3u8' },
+];
 
 export const REFRESH_AFTER_S = 12 * 3600; // 12 hours
 
@@ -108,13 +136,55 @@ async function refreshFeed(feed) {
       });
     }
   }
-  // Replace the feed wholesale: delete old rows, insert fresh ones.
-  // (A feed file is a few hundred rows at most; a delete+insert keeps
-  // the cache exactly in sync with upstream, including removals.)
-  await db.delete(channels).where(eq(channels.feed, feed)).run();
-  // Insert in chunks so one call never gets too large.
-  for (let i = 0; i < values.length; i += 100) {
-    await db.insert(channels).values(values.slice(i, i + 100)).run();
+  // Hand-picked extras for the Persian feed (EXTRA_FAS): appended
+  // after the playlist sources, deduped by URL like everything else.
+  if (feed === 'fas') {
+    for (const r of EXTRA_FAS) {
+      if (seen.has(r.url)) continue;
+      seen.add(r.url);
+      values.push({
+        feed,
+        source: 'extra',
+        tvgId: null,
+        name: r.name,
+        logo: r.logo,
+        groupName: r.group,
+        url: r.url,
+        tier: 'https',
+        checkedAt: now,
+      });
+    }
+  }
+  // Sync the cache WITHOUT changing row ids: favourites and reports
+  // point at channels.id, so a wholesale delete+insert would orphan
+  // them on every refresh. Instead upsert by (feed, url): update
+  // rows whose content changed, insert new URLs, delete URLs that
+  // vanished. Rows whose content is unchanged are left untouched.
+  const existing = await db.select().from(channels).where(eq(channels.feed, feed)).all();
+  const byUrl = new Map(existing.map((r) => [r.url, r]));
+  const freshUrls = new Set(values.map((v) => v.url));
+  for (const v of values) {
+    const old = byUrl.get(v.url);
+    if (!old) continue; // new URLs are inserted below, in chunks
+    if (
+      old.source !== v.source || old.tvgId !== v.tvgId || old.name !== v.name ||
+      old.logo !== v.logo || old.groupName !== v.groupName || old.tier !== v.tier
+    ) {
+      await db
+        .update(channels)
+        .set({ source: v.source, tvgId: v.tvgId, name: v.name, logo: v.logo, groupName: v.groupName, tier: v.tier, checkedAt: now })
+        .where(eq(channels.id, old.id))
+        .run();
+    }
+  }
+  const toInsert = values.filter((v) => !byUrl.has(v.url));
+  for (let i = 0; i < toInsert.length; i += 100) {
+    await db.insert(channels).values(toInsert.slice(i, i + 100)).run();
+  }
+  for (const row of existing) {
+    if (!freshUrls.has(row.url)) {
+      await db.delete(channels).where(eq(channels.id, row.id)).run();
+    }
   }
   await db
     .insert(cacheMeta)

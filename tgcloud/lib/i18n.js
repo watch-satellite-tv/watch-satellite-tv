@@ -44,9 +44,21 @@ export function effectiveLang(saved, telegramCode) {
 }
 
 // Feed labels, per language. Channel names/groups are proper names
-// from the playlists and are NOT translated.
+// from the playlists and are NOT translated. The Persian feed is the
+// Iran feed — first chip, labelled with the flag in every language.
 export const FEED_LABELS = {
-  fas: { fa: 'فارسی', en: 'Persian', zh: '波斯语', ar: 'فارسية', ru: 'Персидский' },
+  fas: { fa: '🇮🇷 ایران', en: '🇮🇷 Iran', zh: '🇮🇷 伊朗', ar: '🇮🇷 إيران', ru: '🇮🇷 Иран' },
+  us: { fa: '🇺🇸 آمریکا', en: '🇺🇸 USA', zh: '🇺🇸 美国', ar: '🇺🇸 أمريكا', ru: '🇺🇸 США' },
+  tr: { fa: '🇹🇷 ترکیه', en: '🇹🇷 Türkiye', zh: '🇹🇷 土耳其', ar: '🇹🇷 تركيا', ru: '🇹🇷 Турция' },
+  sa: { fa: '🇸🇦 عربستان', en: '🇸🇦 Saudi Arabia', zh: '🇸🇦 沙特阿拉伯', ar: '🇸🇦 السعودية', ru: '🇸🇦 Саудовская Аравия' },
+  ae: { fa: '🇦🇪 امارات', en: '🇦🇪 UAE', zh: '🇦🇪 阿联酋', ar: '🇦🇪 الإمارات', ru: '🇦🇪 ОАЭ' },
+  de: { fa: '🇩🇪 آلمان', en: '🇩🇪 Germany', zh: '🇩🇪 德国', ar: '🇩🇪 ألمانيا', ru: '🇩🇪 Германия' },
+  fr: { fa: '🇫🇷 فرانسه', en: '🇫🇷 France', zh: '🇫🇷 法国', ar: '🇫🇷 فرنسا', ru: '🇫🇷 Франция' },
+  ru: { fa: '🇷🇺 روسیه', en: '🇷🇺 Russia', zh: '🇷🇺 俄罗斯', ar: '🇷🇺 روسيا', ru: '🇷🇺 Россия' },
+  cn: { fa: '🇨🇳 چین', en: '🇨🇳 China', zh: '🇨🇳 中国', ar: '🇨🇳 الصين', ru: '🇨🇳 Китай' },
+  in: { fa: '🇮🇳 هند', en: '🇮🇳 India', zh: '🇮🇳 印度', ar: '🇮🇳 الهند', ru: '🇮🇳 Индия' },
+  af: { fa: '🇦🇫 افغانستان', en: '🇦🇫 Afghanistan', zh: '🇦🇫 阿富汗', ar: '🇦🇫 أفغانستان', ru: '🇦🇫 Афганистан' },
+  iq: { fa: '🇮🇶 عراق', en: '🇮🇶 Iraq', zh: '🇮🇶 伊拉克', ar: '🇮🇶 العراق', ru: '🇮🇶 Ирак' },
   news: { fa: 'خبری', en: 'News', zh: '新闻', ar: 'أخبار', ru: 'Новости' },
   movies: { fa: 'فیلم', en: 'Movies', zh: '电影', ar: 'أفلام', ru: 'Фильмы' },
   sports: { fa: 'ورزشی', en: 'Sports', zh: '体育', ar: 'رياضة', ru: 'Спорт' },
