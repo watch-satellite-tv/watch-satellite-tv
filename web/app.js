@@ -320,7 +320,14 @@ function play(c) {
   if (hls) { hls.destroy(); hls = null; }
   const url = c.url;
   const isHls = url.toLowerCase().includes('.m3u8');
-  if (isHls && window.Hls && window.Hls.isSupported()) {
+  if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
+    // iOS Safari / WKWebView: native HLS needs NO CORS header, so
+    // streams without Access-Control-Allow-Origin (e.g. GEM on
+    // abntv.live) play here while hls.js would refuse them. Native
+    // first on iOS; hls.js only where native HLS is unavailable.
+    video.src = url;
+    video.play().catch(() => { idleOverlay.hidden = false; setStatus(S('playFailShort'), true); });
+  } else if (isHls && window.Hls && window.Hls.isSupported()) {
     hls = new window.Hls({ maxBufferLength: 30 });
     hls.loadSource(url);
     hls.attachMedia(video);
