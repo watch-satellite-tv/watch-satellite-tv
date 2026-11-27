@@ -1,6 +1,7 @@
 import { api } from 'sdk';
 import { setUserLanguage } from '../lib/users.js';
 import { t, isLang, languagePickerKeyboard, welcomeKeyboard } from '../lib/i18n.js';
+import { mainKeyboard } from '../lib/support.js';
 import {
   isAdmin, fa, adminPanelMessage, getStats, formatStats,
   getRecentReports, formatReports, backKeyboard, broadcast,
@@ -38,6 +39,17 @@ export default async function (query) {
           reply_markup: welcomeKeyboard(lang),
         });
       } catch (e) { console.error('lang set failed', e); }
+      // Users (not the owner) also get the persistent support +
+      // language buttons — a reply keyboard under the chat input.
+      if (!isAdmin(from)) {
+        try {
+          await api.sendMessage({
+            chat_id: chatId,
+            text: t('supportHint', lang),
+            reply_markup: mainKeyboard(lang),
+          });
+        } catch (e) { console.error('support hint failed', e); }
+      }
     }
     try { await api.answerCallbackQuery({ callback_query_id: query.id }); } catch {}
     return;

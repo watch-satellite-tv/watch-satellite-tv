@@ -293,6 +293,63 @@ export const BOT_STRINGS = {
     ar: '✅ تم تعيين اللغة إلى العربية.',
     ru: '✅ Язык установлен: русский.',
   },
+  // Support inbox — same strings as FontStory.
+  supportHint: {
+    fa: 'اگه سوال یا مشکلی داشتی، از دکمه‌ی زیر به پشتیبانی پیام بده 👇',
+    en: 'If you have a question or a problem, message support with the button below 👇',
+    zh: '如有问题，请点击下方按钮联系客服 👇',
+    ar: 'إذا كان لديك سؤال أو مشكلة، راسل الدعم بالزر أدناه 👇',
+    ru: 'Если есть вопрос или проблема, напишите в поддержку кнопкой ниже 👇',
+  },
+  supportButton: {
+    fa: '💬 پیام به پشتیبانی',
+    en: '💬 Message to support',
+    zh: '💬 联系客服',
+    ar: '💬 مراسلة الدعم',
+    ru: '💬 Сообщение в поддержку',
+  },
+  cancelButton: {
+    fa: '❌ انصراف',
+    en: '❌ Cancel',
+    zh: '❌ 取消',
+    ar: '❌ إلغاء',
+    ru: '❌ Отмена',
+  },
+  supportPrompt: {
+    fa: 'پیامت رو بنویس — مستقیم برای پشتیبانی ارسال می‌شه.',
+    en: 'Write your message — it will be sent straight to support.',
+    zh: '请写下您的消息——将直接发送给客服。',
+    ar: 'اكتب رسالتك — ستُرسل مباشرة إلى الدعم.',
+    ru: 'Напишите сообщение — оно сразу уйдёт в поддержку.',
+  },
+  supportCancelled: {
+    fa: 'باشه، پیامت ارسال نشد.',
+    en: 'OK, your message was not sent.',
+    zh: '好的，您的消息未发送。',
+    ar: 'حسناً، لم تُرسل رسالتك.',
+    ru: 'Хорошо, сообщение не отправлено.',
+  },
+  supportTextOnly: {
+    fa: 'لطفاً پیامت رو به صورت متن بفرست.',
+    en: 'Please send your message as text.',
+    zh: '请以文字形式发送您的消息。',
+    ar: 'يرجى إرسال رسالتك كنص.',
+    ru: 'Пожалуйста, отправьте сообщение текстом.',
+  },
+  supportSent: {
+    fa: '✅ پیامت به پشتیبانی رسید — به‌زودی جواب می‌دیم.',
+    en: '✅ Your message reached support — we will reply soon.',
+    zh: '✅ 您的消息已送达客服——我们会尽快回复。',
+    ar: '✅ وصلت رسالتك إلى الدعم — سنرد عليك قريباً.',
+    ru: '✅ Ваше сообщение дошло до поддержки — скоро ответим.',
+  },
+  supportReplyPrefix: {
+    fa: '💬 پاسخ پشتیبانی:\n\n',
+    en: '💬 Support reply:\n\n',
+    zh: '💬 客服回复：\n\n',
+    ar: '💬 رد الدعم:\n\n',
+    ru: '💬 Ответ поддержки:\n\n',
+  },
 };
 
 export function t(key, lang) {
