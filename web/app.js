@@ -330,7 +330,29 @@ function renderList() {
   });
 }
 
+let hls = null;
+// Every play() gets a sequence number: error/play events from an older,
+// already-abandoned stream must not touch the UI of the current one
+// (a late error from the dead stream used to show "play failed" and
+// re-show the black overlay over the NEW channel).
+let playSeq = 0;
+
+// Full player reset before every channel switch. Just assigning a new
+// video.src does NOT reliably recover a <video> element whose previous
+// load failed: on iOS (native HLS) the element stays in its error state
+// (video.error set, NETWORK_NO_SOURCE) and every later play() rejects
+// immediately — so after ONE dead channel, NO channel played until the
+// Mini App was closed and reopened. pause + remove src + load() forces
+// the element back to NETWORK_EMPTY and clears the error.
+function resetPlayer() {
+  try { video.pause(); } catch (e) { /* already paused */ }
+  if (hls) { try { hls.destroy(); } catch (e) { /* already dead */ } hls = null; }
+  video.removeAttribute('src');
+  video.load();
+}
+
 function play(c) {
+  const seq = ++playSeq;
   currentChannel = c;
   nowPlayingEl.hidden = false;
   npNameEl.textContent = c.name;
@@ -340,30 +362,41 @@ function play(c) {
   idleOverlay.hidden = true;
   setStatus(S('playing'));
   renderList();
-  if (hls) { hls.destroy(); hls = null; }
+  resetPlayer();
   const url = c.url;
   const isHls = url.toLowerCase().includes('.m3u8');
+  // Only the newest play may show a failure: a stale error from the
+  // previous stream must not blank the current one.
+  const fail = (msg) => { if (seq !== playSeq) return; idleOverlay.hidden = false; setStatus(msg, true); };
   if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
     // iOS Safari / WKWebView: native HLS needs NO CORS header, so
     // streams without Access-Control-Allow-Origin (e.g. GEM on
     // abntv.live) play here while hls.js would refuse them. Native
     // first on iOS; hls.js only where native HLS is unavailable.
     video.src = url;
-    video.play().catch(() => { idleOverlay.hidden = false; setStatus(S('playFailShort'), true); });
+    video.load();
+    video.play().catch(() => fail(S('playFailShort')));
   } else if (isHls && window.Hls && window.Hls.isSupported()) {
     hls = new window.Hls({ maxBufferLength: 30 });
+    const inst = hls;
     hls.loadSource(url);
     hls.attachMedia(video);
-    hls.on(window.Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+    hls.on(window.Hls.Events.MANIFEST_PARSED, () => { if (seq === playSeq) video.play().catch(() => {}); });
     hls.on(window.Hls.Events.ERROR, (_e, data) => {
-      if (data.fatal) { idleOverlay.hidden = false; setStatus(S('playFail'), true); }
+      if (data.fatal && seq === playSeq) {
+        fail(S('playFail'));
+        // Don't leave a dead instance attached to the video element.
+        try { inst.destroy(); } catch (e) { /* already dead */ }
+        if (hls === inst) hls = null;
+      }
     });
   } else {
     video.src = url;
-    video.play().catch(() => { idleOverlay.hidden = false; setStatus(S('playFailShort'), true); });
+    video.load();
+    video.play().catch(() => fail(S('playFailShort')));
   }
-  video.onplaying = () => setStatus(S('nowPlaying') + c.name);
-  video.onerror = () => { idleOverlay.hidden = false; setStatus(S('playFail'), true); };
+  video.onplaying = () => { if (seq === playSeq) setStatus(S('nowPlaying') + c.name); };
+  video.onerror = () => fail(S('playFail'));
   document.getElementById('playerBox').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
