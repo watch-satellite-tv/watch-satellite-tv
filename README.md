@@ -4,7 +4,7 @@
 
 🤖 Bot: [@watch_satellite_tv_bot](https://t.me/watch_satellite_tv_bot) · 📺 Mini App: [app9110256990.tgcloud.ai](https://app9110256990.tgcloud.ai/) · 🌐 Website: [watch-satellite-tv.github.io/watch-satellite-tv](https://watch-satellite-tv.github.io/watch-satellite-tv/)
 
-Free, open-source Telegram bot + Mini App to watch live satellite TV. **19,800+ channels from 185+ countries**, in 5 languages (Persian, English, Chinese, Arabic, Russian), with favorites, broken-channel reports and search across all feeds. Runs on Telegram Serverless (tgcloud) — no server, no cost.
+Free, open-source Telegram bot + Mini App to watch live satellite TV. **20,000+ channels from 185+ countries**, in 5 languages (Persian, English, Chinese, Arabic, Russian), with favorites, broken-channel reports and search across all feeds. Runs on Telegram Serverless (tgcloud) — no server, no cost.
 
 ---
 
