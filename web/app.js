@@ -330,11 +330,6 @@ function renderList() {
   });
 }
 
-let hls = null;
-// Every play() gets a sequence number: error/play events from an older,
-// already-abandoned stream must not touch the UI of the current one
-// (a late error from the dead stream used to show "play failed" and
-// re-show the black overlay over the NEW channel).
 let playSeq = 0;
 
 // Full player reset before every channel switch. Just assigning a new
