@@ -1,5 +1,13 @@
 # ماهواره زنده — Watch Satellite TV
 
+**Live satellite TV — no dish required, just the internet.**
+
+🤖 Bot: [@watch_satellite_tv_bot](https://t.me/watch_satellite_tv_bot) · 📺 Mini App: [app9110256990.tgcloud.ai](https://app9110256990.tgcloud.ai/) · 🌐 Website: [watch-satellite-tv.github.io/watch-satellite-tv](https://watch-satellite-tv.github.io/watch-satellite-tv/)
+
+Free, open-source Telegram bot + Mini App to watch live satellite TV. **19,800+ channels from 185+ countries**, in 5 languages (Persian, English, Chinese, Arabic, Russian), with favorites, broken-channel reports and search across all feeds. Runs on Telegram Serverless (tgcloud) — no server, no cost.
+
+---
+
 پخش زنده‌ی شبکه‌های ماهواره‌ای، بدون دیش، با اینترنت — به‌صورت مینی‌اپ تلگرام.
 
 - **دسته‌ی ایران:** ۲۸۳ شبکه (لیست iptv-org + تلوبیون/پرشیانا + ۴ آی‌فیلم + جم اسپورت + ۱۳ جم و ۸ پرشیانا از FATV + ۵۶ کانال فارسی‌زبان از FATV + ۱۵ کانال از جستجوی عمیق، بدون تکرار، با اسم‌های فارسی) — اولین دسته

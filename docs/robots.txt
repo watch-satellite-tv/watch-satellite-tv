@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://watch-satellite-tv.github.io/watch-satellite-tv/sitemap.xml
