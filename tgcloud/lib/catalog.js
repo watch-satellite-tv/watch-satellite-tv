@@ -271,6 +271,14 @@ const EXTRA_FAS = [
   { name: 'جم لایف', logo: 'https://fatv.live/logo/def1b08e166d4accad91dd77f17a7347-GEMLife.jpeg', group: 'سرگرمی', url: 'https://ib.abntv.live/hls/gemlife.m3u8' },
   { name: 'جم نیچر', logo: 'https://fatv.live/logo/GEMGeneral.jpg', group: 'مستند', url: 'https://ib.abntv.live/hls/gemnat.m3u8' },
   { name: 'جم پیکسل', logo: 'https://fatv.live/logo/2df4014453074538ad47ce4e75daf4ed-GEMPixel.jpg', group: 'فیلم و سریال', url: 'https://ib.abntv.live/hls/gempixel.m3u8' },
+  // GEM Series + Series Plus (onetv.app) — 403 from every datacenter
+  // egress tried (VM + tgcloud server 2026-11-27), same as every other
+  // onetv.app GEM stream; kept on the Telewebion / Persiana-Sports-IR
+  // logic (likely Iran-reachable, phone test decides). No CORS header
+  // either, so iPhone native HLS only, like the abntv GEMs. Token is
+  // the public playlist token, stable since at least 2026-11-26.
+  { name: 'جم سریز', logo: 'https://fatv.live/logo/gemseries.jpg', group: 'فیلم و سریال', url: 'https://ca-rt.onetv.app/gemseries/index-0.m3u8?token=onetv202' },
+  { name: 'جم سریز +', logo: 'https://gemgroup.tv/assets/images/channels/icon_33.png', group: 'فیلم و سریال', url: 'https://ca-rt.onetv.app/gemseriesplus/index-0.m3u8?token=onetv202' },
   // Persiana via FATV — 200 + CORS * (play everywhere).
   { name: 'پرشیانا چین', logo: 'https://fatv.live/logo/persianaGeneral.png', group: 'سرگرمی', url: 'https://chinahls.persiana.live/hls/stream.m3u8' },
   { name: 'پرشیانا پادکست', logo: 'https://fatv.live/logo/persianaGeneral.png', group: 'موسیقی', url: 'https://podhls.persiana.live/hls/stream.m3u8' },
