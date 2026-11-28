@@ -70,6 +70,26 @@ export const reports = table('reports', {
   channelIdx: index('idx_reports_channel').on(t.channelId),
 }));
 
+// Silent playback feedback, one vote per user per channel per day
+// (the endpoint upserts on (user, channel, day) so a retry or a
+// second play of the same channel doesn't spam the table).
+// outcome: 'played' = the video actually started (onplaying fired),
+// 'failed' = a fatal play error. (A third outcome, 'vpn', was
+// removed 2026-11-28: Telegram is filtered in Iran, so every user
+// is already on a VPN and the distinction is meaningless.)
+export const playbackFeedback = table('playback_feedback', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull(),
+  channelId: integer('channel_id').notNull(),
+  outcome: text('outcome').notNull(),
+  // Unix day (floor(now/86400)): the dedup window for one vote.
+  day: integer('day').notNull(),
+  createdAt: integer('created_at').default(sql`(unixepoch())`),
+}, (t) => ({
+  userChannelDayIdx: index('idx_feedback_user_channel_day').on(t.userId, t.channelId, t.day),
+  channelIdx: index('idx_feedback_channel').on(t.channelId),
+}));
+
 // Tiny key/value store for the admin's multi-step flows (e.g. the
 // broadcast draft). Serverless handlers have no memory between calls,
 // so the flow state lives here, not in a variable.

@@ -1,7 +1,7 @@
 // Watch Satellite TV — Mini App front-end.
 // Talks to the bot only through Telegram.WebApp.Serverless.call()
 // (endpoints: register, getChannels, getFavorites, toggleFavorite,
-// reportBroken, setLanguage, searchAll). Playback is direct from the phone to
+// reportBroken, playbackFeedback, setLanguage, searchAll). Playback is direct from the phone to
 // the origin CDN via hls.js (or native HLS on iOS Safari) — no proxy.
 //
 // i18n: the UI renders in the user's effective language (saved choice,
@@ -38,6 +38,8 @@ const I18N = {
     empty: 'چیزی پیدا نشد.',
     note: 'فقط شبکه‌هایی نشون داده می‌شن که مستقیم توی گوشی پخش می‌شن. اگه شبکه‌ای پخش نشد، دکمه‌ی «گزارش بده» رو بزن تا بررسی بشه.',
     favLabel: 'علاقه‌مندی',
+    tryOther: 'منبع دیگه رو امتحان کن',
+    altNone: 'منبع دیگه‌ای برای این شبکه پیدا نشد.',
   },
   en: {
     brandTitle: 'Watch Satellite TV',
@@ -65,6 +67,8 @@ const I18N = {
     empty: 'Nothing found.',
     note: 'Only channels that play directly on your phone are shown. If a channel doesn’t play, tap “Report it” so we can check it.',
     favLabel: 'Favorite',
+    tryOther: 'Try another source',
+    altNone: 'No other source found for this channel.',
   },
   zh: {
     brandTitle: '卫星直播',
@@ -92,6 +96,8 @@ const I18N = {
     empty: '未找到内容。',
     note: '仅显示可在手机上直接播放的频道。如果某个频道无法播放，请点击“报告”，我们会核查。',
     favLabel: '收藏',
+    tryOther: '试试其他来源',
+    altNone: '没有找到该频道的其他来源。',
   },
   ar: {
     brandTitle: 'البث الفضائي المباشر',
@@ -119,6 +125,8 @@ const I18N = {
     empty: 'لم يتم العثور على شيء.',
     note: 'تُعرض فقط القنوات التي تعمل مباشرة على هاتفك. إذا لم تعمل قناة، اضغط «أبلغ عنه» لنراجعها.',
     favLabel: 'مفضلة',
+    tryOther: 'جرّب مصدرًا آخر',
+    altNone: 'لم يتم العثور على مصدر آخر لهذه القناة.',
   },
   ru: {
     brandTitle: 'Спутниковое ТВ',
@@ -146,6 +154,8 @@ const I18N = {
     empty: 'Ничего не найдено.',
     note: 'Показаны только каналы, которые играют прямо на телефоне. Если канал не работает, нажмите «Сообщить», и мы проверим.',
     favLabel: 'В избранное',
+    tryOther: 'Другой источник',
+    altNone: 'Других источников для этого канала нет.',
   },
 };
 
@@ -195,11 +205,23 @@ const favBtn = document.getElementById('favBtn');
 const reportBtn = document.getElementById('reportBtn');
 const idleOverlay = document.getElementById('idleOverlay');
 const langSelect = document.getElementById('langSelect');
+const failActionsEl = document.getElementById('failActions');
+const altBtn = document.getElementById('altBtn');
 
 let hls = null;
 let feeds = [];
 let currentFeed = 'fas';
 let channels = [];
+// Pagination: big feeds (US: 1,380 rows) load 100 at a time so the
+// first paint and each render stay fast; more rows append on scroll.
+const PAGE_SIZE = 100;
+let feedTotal = 0;
+let feedOffset = 0;
+let loadingMore = false;
+let hasMore = false;
+// URLs already tried (and failed) for the current channel, so «منبع
+// دیگه» never replays the same dead stream twice.
+let triedUrls = new Set();
 let favorites = new Set();
 let currentChannel = null;
 let query = '';
@@ -237,6 +259,7 @@ function applyLang(l) {
   document.getElementById('brandSub').textContent = S('brandSub');
   document.getElementById('idleText').textContent = S('idleText');
   reportBtn.textContent = S('reportBtn');
+  altBtn.textContent = S('tryOther');
   searchEl.placeholder = S('searchPh');
   searchEl.setAttribute('aria-label', S('searchPh'));
   emptyEl.textContent = S('empty');
@@ -283,11 +306,7 @@ function playIcon() {
   return s;
 }
 
-function renderList() {
-  const rows = filtered();
-  listEl.innerHTML = '';
-  emptyEl.hidden = rows.length !== 0;
-  countEl.textContent = rows.length ? countText(rows.length) : '';
+function appendRows(rows) {
   rows.forEach((c) => {
     const li = document.createElement('li');
     const btn = document.createElement('button');
@@ -330,6 +349,17 @@ function renderList() {
   });
 }
 
+function renderList() {
+  const rows = filtered();
+  listEl.innerHTML = '';
+  emptyEl.hidden = rows.length !== 0;
+  // In feed mode the count is the server total (the list may only
+  // have the first page loaded); in search mode it's the result count.
+  const n = query.trim().length >= 2 ? rows.length : (feedTotal || rows.length);
+  countEl.textContent = rows.length ? countText(n) : '';
+  appendRows(rows);
+}
+
 let playSeq = 0;
 
 // Full player reset before every channel switch. Just assigning a new
@@ -346,9 +376,14 @@ function resetPlayer() {
   video.load();
 }
 
-function play(c) {
+function play(c, keepTried) {
   const seq = ++playSeq;
   currentChannel = c;
+  // Fresh tap on a channel starts a new attempt set; «منبع دیگه»
+  // keeps the tried list so it never replays a dead stream.
+  if (keepTried) triedUrls.add(c.url);
+  else triedUrls = new Set([c.url]);
+  failActionsEl.hidden = true;
   nowPlayingEl.hidden = false;
   npNameEl.textContent = c.name;
   npGroupEl.textContent = c.group || '';
@@ -360,9 +395,28 @@ function play(c) {
   resetPlayer();
   const url = c.url;
   const isHls = url.toLowerCase().includes('.m3u8');
+  // Silent playback feedback: the app itself knows whether the
+  // channel played, so nobody gets asked. 'played' fires once per
+  // play (onplaying); 'failed' fires only if nothing played first —
+  // a stream that started and later stalled counts as played.
+  let playedReported = false;
+  const sendFeedback = (outcome) => {
+    if (seq !== playSeq) return;
+    call('playbackFeedback', { channel_id: c.id, outcome }).catch(() => {});
+  };
   // Only the newest play may show a failure: a stale error from the
   // previous stream must not blank the current one.
-  const fail = (msg) => { if (seq !== playSeq) return; idleOverlay.hidden = false; setStatus(msg, true); };
+  const fail = (msg) => {
+    if (seq !== playSeq) return;
+    idleOverlay.hidden = false;
+    setStatus(msg, true);
+    if (!playedReported) sendFeedback('failed');
+    // On failure only: show the «منبع دیگه» button — another source
+    // for the same channel, if Search All finds one. (No VPN hint:
+    // Telegram itself is filtered in Iran, so every user here is
+    // already on a VPN — it can't be the fix.)
+    failActionsEl.hidden = false;
+  };
   if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
     // iOS Safari / WKWebView: native HLS needs NO CORS header, so
     // streams without Access-Control-Allow-Origin (e.g. GEM on
@@ -390,9 +444,30 @@ function play(c) {
     video.load();
     video.play().catch(() => fail(S('playFailShort')));
   }
-  video.onplaying = () => { if (seq === playSeq) setStatus(S('nowPlaying') + c.name); };
+  video.onplaying = () => {
+    if (seq !== playSeq) return;
+    playedReported = true;
+    sendFeedback('played');
+    failActionsEl.hidden = true;
+    setStatus(S('nowPlaying') + c.name);
+  };
   video.onerror = () => fail(S('playFail'));
   document.getElementById('playerBox').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// «منبع دیگه»: Search All by channel name, play the first source
+// whose URL hasn't already failed for this channel.
+async function tryAlternate() {
+  if (!currentChannel) return;
+  setStatus(S('searching'));
+  try {
+    const res = await call('searchAll', { q: currentChannel.name });
+    const alt = (res.channels || []).find((x) => x.url !== currentChannel.url && !triedUrls.has(x.url));
+    if (alt) play(alt, true);
+    else setStatus(S('altNone'), true);
+  } catch (e) {
+    setStatus(S('altNone'), true);
+  }
 }
 
 async function toggleFav(c) {
@@ -419,31 +494,76 @@ async function loadFeed() {
   setStatus(S('loading'));
   listEl.innerHTML = '';
   countEl.textContent = '';
+  feedTotal = 0;
+  feedOffset = 0;
+  hasMore = false;
+  loadingMore = false;
   try {
     if (currentFeed === 'fav') {
       const res = await call('getFavorites', {});
       channels = res.channels || [];
+      feedTotal = channels.length;
       feeds = feeds.length ? feeds : [{ key: 'fas', label: S('fasLabel') }];
       setStatus(channels.length ? '' : S('noFav'));
       renderList();
       return;
     }
-    const res = await call('getChannels', { feed: currentFeed });
+    // Cached first: noRefresh serves the stored rows immediately even
+    // when the 12h cache is stale, so the first paint never waits on
+    // a playlist fetch. If the cache WAS stale, a background
+    // force-refresh warms it for the next open (result ignored).
+    const res = await call('getChannels', { feed: currentFeed, limit: PAGE_SIZE, offset: 0, noRefresh: true });
     // The server is authoritative about the feed key: if the feed the
     // app had selected no longer exists (e.g. merged away), follow
     // what the server returned so the chips stay in sync.
     currentFeed = res.feed || currentFeed;
     feeds = res.feeds || feeds;
     channels = res.channels || [];
+    feedTotal = res.total || channels.length;
+    feedOffset = channels.length;
+    hasMore = feedOffset < feedTotal;
     renderChips();
     setStatus(res.refreshed ? S('refreshed') : (channels.length ? '' : S('noChannels')));
     renderList();
+    if (res.stale) {
+      call('getChannels', { feed: currentFeed, force: true }).catch(() => {});
+    }
   } catch (e) {
     setStatus(e.message === 'NOT_IN_TELEGRAM' ? S('notInTelegram') : S('loadFail'), true);
   }
 }
 
+// Infinite scroll: near the bottom of the list, load the next page
+// and append it (no full re-render, so scroll position is kept).
+async function loadMore() {
+  if (loadingMore || !hasMore || query.trim().length >= 2 || currentFeed === 'fav') return;
+  loadingMore = true;
+  const feed = currentFeed;
+  try {
+    const res = await call('getChannels', { feed, limit: PAGE_SIZE, offset: feedOffset });
+    if (feed !== currentFeed || query.trim().length >= 2) return;
+    const page = res.channels || [];
+    channels = channels.concat(page);
+    feedTotal = res.total || feedTotal;
+    feedOffset += page.length;
+    hasMore = feedOffset < feedTotal;
+    emptyEl.hidden = channels.length !== 0;
+    countEl.textContent = channels.length ? countText(feedTotal) : '';
+    appendRows(page);
+  } catch (e) {
+    // A failed page load is silent — scrolling again retries it.
+  } finally {
+    loadingMore = false;
+  }
+}
+
+window.addEventListener('scroll', () => {
+  if (loadingMore || !hasMore || query.trim().length >= 2 || currentFeed === 'fav') return;
+  if (window.innerHeight + window.scrollY > document.body.scrollHeight - 600) loadMore();
+});
+
 favBtn.addEventListener('click', () => { if (currentChannel) toggleFav(currentChannel); });
+altBtn.addEventListener('click', () => { tryAlternate(); });
 reportBtn.addEventListener('click', async () => {
   if (!currentChannel) return;
   try {

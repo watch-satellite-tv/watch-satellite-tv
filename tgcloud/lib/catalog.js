@@ -1,7 +1,22 @@
 import { db, fetch } from 'sdk';
-import { eq, asc } from 'sdk/db';
+import { eq, asc, and, sql } from 'sdk/db';
 import { channels, cacheMeta } from '../schema.js';
 import { PLAYABLE_FAS, PERSIANA_DEAD } from './probe.js';
+
+// Rows that can never play in this Mini App, whatever the feed:
+// - DASH manifests (.mpd): the player is HLS-only, and no browser
+//   plays DASH natively, so these rows are dead by construction
+//   (231 rows across the feeds when found 2026-11-28, incl. BBC
+//   Persian 1080p in fas — 7 reports from 5 users, all hopeless).
+// - ca-rt.onetv.app: 403 from every egress tried and dead on the
+//   owner's iPhone in Iran too (GEM Series, Manoto) — the host is
+//   gone, not geo-blocked. Filtered here at insert time AND at read
+//   time (getFeedChannels / searchAll), so a stale row in a manual
+//   feed can never surface either.
+function isUnplayableUrl(url) {
+  const u = String(url || '').toLowerCase().split(/[?#]/)[0];
+  return u.endsWith('.mpd') || u.includes('onetv.app');
+}
 
 // Channel catalog — iptv-org playlists, fetched lazily and cached in
 // SQLite. There is no cron in tgcloud, so a feed refreshes on demand:
@@ -347,6 +362,11 @@ const EXTRA_FAS = [
   { name: 'افغانستان اینترنشنال', logo: 'https://www.fatv.live/logo/afin.jpg', group: 'خبر', url: 'https://afintlbak.livetvstream.co.uk/aitv/chunklist_b1196000.m3u8' },
   { name: 'بی‌بی‌سی افغانستان', logo: 'https://fatv.live/logo/23a3378374034663bb415afe18f8d6f3-bbcafg.jpg', group: 'خبر', url: 'https://ib.abntv.live/hls/bbcafgfatv.m3u8' },
   { name: 'بی‌بی‌سی فارسی', logo: 'https://fatv.live/logo/9c5bdcdde5c74a9bb8a694245d9d08b1-bbcper.jpg', group: 'خبر', url: 'https://ib.abntv.live/hls/bbcperfatv.m3u8' },
+  // BBC Persian direct from the BBC (added 2026-11-28, replaces the
+  // dead DASH row removed the same day): probed 200 + CORS *, so it
+  // plays everywhere including Android. Iran-side reachability is
+  // untested — the abntv row above stays as the fallback.
+  { name: 'بی‌بی‌سی فارسی (HD)', logo: 'https://fatv.live/logo/9c5bdcdde5c74a9bb8a694245d9d08b1-bbcper.jpg', group: 'خبر', url: 'https://vs-hls-pushb-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_persian_tv/mobile_wifi_main_hd_abr_v2.m3u8' },
   { name: 'خانه هنرمندان', logo: 'https://fatv.live/logo/khh.jpg', group: 'سرگرمی', url: 'https://ib.abntv.live/hls/khh.m3u8' },
   { name: 'پامیر', logo: 'https://fatv.live/logo/43a9a9f84ad94a72bfd54dff93d93c20-PamirTV.jpg', group: 'عمومی', url: 'https://ib.abntv.live/hls/pamirtv.m3u8' },
   // Deep sweep (2026-11-26): streamzhd + livefarsi + Quincunx
@@ -447,6 +467,9 @@ async function refreshFeed(feed) {
     const rows = parseM3u(await res.text());
     for (const r of rows) {
       if (seen.has(r.url)) continue;
+      // Never insert a stream the player cannot play (DASH, dead
+      // onetv host) — see isUnplayableUrl above.
+      if (isUnplayableUrl(r.url)) continue;
       // Per-source probe filters, applied at insert time:
       // - 'fas': only the 142 streams a live probe (2026-11-25,
       //   re-checked twice) verified as https + HTTP 200 + CORS *.
@@ -534,15 +557,25 @@ async function refreshFeed(feed) {
 
 // Return cached channels for a feed, refreshing first when the cache
 // is empty or older than REFRESH_AFTER_S. `force` re-fetches regardless.
-export async function getFeedChannels(feed, { force = false, includeHttp = false } = {}) {
+// `noRefresh` skips the refresh entirely and serves whatever is cached
+// (the client then fires a background force-refresh so the NEXT open
+// is fast without blocking the first paint). `limit`/`offset` paginate
+// in SQL: the US feed is 1,380 rows / ~346 KB in one call, and the
+// client renders page by page instead. `total` is the full playable
+// count for the feed; `stale` tells the client a background refresh
+// is worth firing.
+export async function getFeedChannels(feed, { force = false, includeHttp = false, noRefresh = false, limit = 100, offset = 0 } = {}) {
   const def = FEEDS[feed];
-  if (!def) return { feed, channels: [], total: 0, updatedAt: null, refreshed: false };
+  if (!def) return { feed, channels: [], total: 0, updatedAt: null, refreshed: false, stale: false };
+  limit = Math.min(Math.max(Number(limit) || 100, 10), 200);
+  offset = Math.max(Number(offset) || 0, 0);
   const meta = await db.select().from(cacheMeta).where(eq(cacheMeta.key, 'feed:' + feed)).get();
   const now = Math.floor(Date.now() / 1000);
   const age = meta ? now - (meta.updatedAt || 0) : Infinity;
   const count = await db.$count(channels, eq(channels.feed, feed));
+  const stale = count > 0 && age > REFRESH_AFTER_S;
   let refreshed = false;
-  if (force || count === 0 || age > REFRESH_AFTER_S) {
+  if (!noRefresh && (force || count === 0 || age > REFRESH_AFTER_S)) {
     try {
       await refreshFeed(feed);
       refreshed = true;
@@ -552,32 +585,40 @@ export async function getFeedChannels(feed, { force = false, includeHttp = false
       if (count === 0) throw e;
     }
   }
+  const whereClause = and(
+    eq(channels.feed, feed),
+    includeHttp ? undefined : eq(channels.tier, 'https'),
+    sql`${channels.url} NOT LIKE '%.mpd%'`,
+    sql`${channels.url} NOT LIKE '%onetv.app%'`,
+  );
+  const total = await db.$count(channels, whereClause);
   const rows = await db
     .select()
     .from(channels)
-    .where(eq(channels.feed, feed))
+    .where(whereClause)
     .orderBy(asc(channels.name))
+    .limit(limit)
+    .offset(offset)
     .all();
   const freshMeta = await db.select().from(cacheMeta).where(eq(cacheMeta.key, 'feed:' + feed)).get();
-  const list = rows
-    .filter((r) => includeHttp || r.tier === 'https')
-    .map((r) => ({
-      id: r.id,
-      tvg_id: r.tvgId,
-      name: r.name,
-      logo: r.logo,
-      group: r.groupName,
-      url: r.url,
-      tier: r.tier,
-      reports: r.reports,
-    }));
+  const list = rows.map((r) => ({
+    id: r.id,
+    tvg_id: r.tvgId,
+    name: r.name,
+    logo: r.logo,
+    group: r.groupName,
+    url: r.url,
+    tier: r.tier,
+    reports: r.reports,
+  }));
   return {
     feed,
     label: def.label,
     channels: list,
-    total: list.length,
-    stored: rows.length,
+    total,
+    stored: count,
     updatedAt: freshMeta ? freshMeta.updatedAt : null,
     refreshed,
+    stale,
   };
 }

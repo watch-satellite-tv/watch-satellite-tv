@@ -39,6 +39,8 @@ video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 14px
 .icon-btn { margin-inline-start: auto; background: var(--surface2); color: var(--accent); border: 1px solid var(--border); border-radius: 999px; width: 36px; height: 36px; font-size: 20px; cursor: pointer; }
 .icon-btn.fav { color: var(--accent); }
 .report-btn { background: none; border: none; color: var(--muted); font-family: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; }
+.fail-actions { margin: 8px 2px 0; }
+.fail-btn { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: inherit; font-size: 13px; padding: 8px 10px; border-radius: 10px; cursor: pointer; }
 .status { margin: 6px 2px 0; font-size: 13px; color: var(--muted); min-height: 18px; }
 .status.error { color: #ff9a9a; }
 .controls { margin-top: 4px; }

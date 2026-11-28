@@ -1,7 +1,7 @@
 import { api, db } from 'sdk';
 import { sql, eq, inArray, desc } from 'sdk/db';
 import { OWNER_ID } from './owner.js';
-import { users, favorites, reports, channels, adminState } from '../schema.js';
+import { users, favorites, reports, channels, adminState, playbackFeedback } from '../schema.js';
 
 // Admin panel — owner-only. OWNER_ID lives in tgcloud/lib/owner.js
 // (get it from @userinfobot).
@@ -56,7 +56,7 @@ export async function getStats() {
   const now = Math.floor(Date.now() / 1000);
   const todayStart = tehranDayStartUnix();
   const weekStart = now - 7 * 86400;
-  const [usersTotal, usersToday, users7d, activeToday, favTotal, repTotal, rep7d, chTotal, topReported] =
+  const [usersTotal, usersToday, users7d, activeToday, favTotal, repTotal, rep7d, chTotal, topReported, fb7d] =
     await Promise.all([
       db.get(sql`SELECT count(*) AS c FROM users`),
       db.get(sql`SELECT count(*) AS c FROM users WHERE created_at >= ${todayStart}`),
@@ -67,6 +67,9 @@ export async function getStats() {
       db.get(sql`SELECT count(*) AS c FROM reports WHERE created_at >= ${weekStart}`),
       db.get(sql`SELECT count(*) AS c FROM channels`),
       db.all(sql`SELECT channel_id, count(*) AS n FROM reports GROUP BY channel_id ORDER BY n DESC LIMIT 5`),
+      // Playback feedback, last 7 days: how many votes said played /
+      // failed (silent, from the app itself — nobody is asked).
+      db.all(sql`SELECT outcome, count(*) AS n FROM playback_feedback WHERE created_at >= ${weekStart} GROUP BY outcome`),
     ]);
   // Resolve the most-reported channel ids to names.
   const ids = (topReported || []).map((r) => r.channel_id);
@@ -75,6 +78,8 @@ export async function getStats() {
     const rows = await db.select().from(channels).where(inArray(channels.id, ids)).all();
     names = Object.fromEntries(rows.map((r) => [r.id, r.name]));
   }
+  const fb = { played: 0, failed: 0 };
+  for (const r of fb7d || []) if (fb[r.outcome] !== undefined) fb[r.outcome] = r.n;
   return {
     usersTotal: usersTotal?.c ?? 0,
     usersToday: usersToday?.c ?? 0,
@@ -85,6 +90,8 @@ export async function getStats() {
     rep7d: rep7d?.c ?? 0,
     chTotal: chTotal?.c ?? 0,
     topReported: (topReported || []).map((r) => ({ name: names[r.channel_id] || ('#' + r.channel_id), n: r.n })),
+    fbPlayed7d: fb.played,
+    fbFailed7d: fb.failed,
   };
 }
 
@@ -99,7 +106,8 @@ export function formatStats(s) {
     `🟢 فعال امروز: ${fa(s.activeToday)}\n` +
     `📺 شبکه‌های فعال: ${fa(s.chTotal)}\n` +
     `⭐ علاقه‌مندی‌ها: ${fa(s.favTotal)}\n` +
-    `🚩 گزارش خرابی: ${fa(s.repTotal)} کل | ${fa(s.rep7d)} این هفته\n\n` +
+    `🚩 گزارش خرابی: ${fa(s.repTotal)} کل | ${fa(s.rep7d)} این هفته\n` +
+    `▶️ بازخورد پخش (این هفته): ${fa(s.fbPlayed7d)} پخش شد | ${fa(s.fbFailed7d)} خراب\n\n` +
     top
   );
 }

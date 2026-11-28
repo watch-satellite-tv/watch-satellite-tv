@@ -24,7 +24,7 @@ export default async function (input, ctx) {
   const rows = await db
     .select()
     .from(channels)
-    .where(sql`${channels.tier} = 'https' AND ${channels.name} LIKE ${pattern} ESCAPE '\\'`)
+    .where(sql`${channels.tier} = 'https' AND ${channels.name} LIKE ${pattern} ESCAPE '\\' AND ${channels.url} NOT LIKE '%.mpd%' AND ${channels.url} NOT LIKE '%onetv.app%'`)
     .orderBy(asc(channels.name))
     .limit(500)
     .all();
